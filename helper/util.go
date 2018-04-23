@@ -2,6 +2,7 @@ package helper
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/url"
 )
@@ -11,6 +12,11 @@ type (
 	middlefunc func(handler http.Handler) http.Handler
 )
 
+/* ApiManager consists of following fields.
+	routers: indicates the registered api the upstream it should goes to. Example. login: 10.10.10.10:4000
+	middle: all the middleware associated with api. Example. login: [Log, Auth, etc..]
+    final: the final Api it should call after all the middleware.
+*/
 type ApiManager struct {
 	routers map[string]string
 	middle  map[string][]middlefunc
@@ -59,4 +65,13 @@ func SetResponse(w http.ResponseWriter, h H) {
 	w.Header().Set("Content-Type", "application/json")
 	enc := json.NewEncoder(w)
 	enc.Encode(h)
+}
+
+func ConstructHttpRequest(r *http.Request, url string) *http.Request {
+	fmt.Println(url)
+	newRequest, err := http.NewRequest(r.Method, url, r.Body)
+	if err != nil {
+		fmt.Println(err)
+	}
+	return newRequest
 }
