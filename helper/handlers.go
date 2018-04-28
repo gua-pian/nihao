@@ -1,10 +1,11 @@
 package helper
 
 import (
-	"fmt"
-	"net/http"
-	"io/ioutil"
 	"bytes"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"time"
 )
 
 var AddApi = func(w http.ResponseWriter, r *http.Request) {
@@ -33,7 +34,6 @@ var AddApi = func(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	am.routers[method] = handler
-
 	SetResponse(w, H{"Status": 0, "Info": "method added ok!"})
 }
 
@@ -69,7 +69,32 @@ var HomeHandler = func(w http.ResponseWriter, r *http.Request) {
 	fmt.Println(r.Host)
 
 	client := http.Client{}
-	res, err := client.Do(newRequest)
+	// begin time.
+	begin := time.Now()
+
+	// set timeout for the request.
+	done := make(chan bool)
+	var res *http.Response
+	go func() {
+		res, _ = client.Do(newRequest)
+		done <- true
+	}()
+
+	var tick int64 = am.timeout[path]
+	if tick == 0 {
+		// set a default timeout.
+		tick = 20
+	}
+	select {
+	case <-time.After(time.Duration(tick) * time.Second):
+		SetResponse(w, H{"Status": -1, "Info": "Timeout,byebye."})
+		return
+	case <-done:
+		duration := time.Since(begin).String()
+		fmt.Println("time elapsed:" + duration)
+		fmt.Println("response status:" + res.Status)
+	}
+
 	if err != nil {
 		SetResponse(w, H{"Status": -1, "Info": err})
 		return
@@ -88,11 +113,11 @@ var HomeHandler = func(w http.ResponseWriter, r *http.Request) {
 	// Log the response.
 	res4Log := ioutil.NopCloser(resReader4Log)
 	loginfo, _ := ioutil.ReadAll(res4Log)
-	fmt.Printf("%s\n", loginfo)
+	fmt.Printf("%v\n", len(loginfo))
 
 	// Send the response to downstream.
 	res4Return := ioutil.NopCloser(resReader4Return)
 	s, _ := ioutil.ReadAll(res4Return)
-	w.Header().Set("Content-Type","application/json")
+	w.Header().Set("Content-Type", "application/json")
 	w.Write([]byte(s))
 }

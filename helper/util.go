@@ -21,6 +21,7 @@ type ApiManager struct {
 	routers map[string]string
 	middle  map[string][]middlefunc
 	final   map[string]http.HandlerFunc
+	timeout map[string]int64
 }
 
 var am *ApiManager
@@ -30,7 +31,9 @@ func init() {
 		routers: make(map[string]string),
 		middle:  make(map[string][]middlefunc),
 		final:   make(map[string]http.HandlerFunc),
+		timeout: make(map[string]int64),
 	}
+	am.routers["/user/list_material"] = "http://10.2.1.107:8085"
 	am.middle["/api_add/list"] = []middlefunc{Log, Lol}
 	am.final["/api_add/list"] = ShowHandler
 }
@@ -68,7 +71,6 @@ func SetResponse(w http.ResponseWriter, h H) {
 }
 
 func ConstructHttpRequest(r *http.Request, url string) *http.Request {
-	fmt.Println(url)
 	newRequest, err := http.NewRequest(r.Method, url, r.Body)
 	if err != nil {
 		fmt.Println(err)
