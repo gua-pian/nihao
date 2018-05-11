@@ -27,15 +27,17 @@ all: test
 
 # help prints a help screen
 help:
-	@echo "build     - go build"
-	@echo "install   - go install"
+	@echo "build     - go build (for current platform)"
+	@echo "install   - go install (for current platform)"
 	@echo "gofmt     - go fmt"
-	@echo "linux     - go build linux/amd64"
+	@echo "linux     - go build linux/amd64 (cross compile)"
+	@echo "windows   - go build windows/386 (cross compile)"
+	@echo "macos     - go build darwin/amd64 (cross compile)"
 	@echo "clean     - remove temp files"
 
 # build compiles fabio and the test dependencies
 build:  gofmt
-	$(GO) build
+	$(GO) build -tags netgo $(GOFLAGS)
 
 # gofmt runs gofmt on the code
 gofmt:
@@ -45,6 +47,14 @@ gofmt:
 linux:
 	GOOS=linux GOARCH=amd64 $(GO) build -tags netgo $(GOFLAGS)
 
+# windows builds a exe file
+windows:
+	GOOS=windows GOARCH=386 $(GO) build -tags netgo $(GOFLAGS)
+
+macos:
+	GOOS=darwin GOARCH=amd64 $(GO) build -tags netgo $(GOFLAGS)
+
+
 # install runs go install
 install:
 	$(GO) install $(GOFLAGS)
@@ -53,6 +63,6 @@ install:
 # clean removes intermediate files
 clean:
 	$(GO) clean
-	rm -rf pkg dist fabio
+	rm -rf pkg dist awesomeProject awesomeProject.exe
 	find . -name '*.test' -delete
 

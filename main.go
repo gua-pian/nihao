@@ -2,10 +2,15 @@ package main
 
 import (
 	"awesomeProject/helper"
+	"log"
 	"net/http"
 )
 
+var version string = "v1.0.0"
+
 func main() {
+
+	log.Printf("[INFO] Version %s Starting\n", version)
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/api_add/api", helper.AddApi)
