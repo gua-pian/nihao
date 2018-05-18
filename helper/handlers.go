@@ -55,16 +55,14 @@ var HomeHandler = func(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	/*
+	// Init the request with uuid.
+
 	// Log all the request parameters.
-	// Handler content-type.
-	values, err := ContentTypeHandler(r)
+	err := dumpRequest(r)
 	if err != nil {
 		SetResponse(w, H{"Status": -1, "Info": err})
 		return
 	}
-	fmt.Printf("parameters: %v\n", values)
-	*/
 
 	u, err := url.Parse(router + path)
 	if err != nil {
