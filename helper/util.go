@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"net/http/httputil"
 	"net/url"
 )
 
@@ -76,4 +77,35 @@ func ConstructHttpRequest(r *http.Request, url string) *http.Request {
 		fmt.Println(err)
 	}
 	return newRequest
+}
+
+func newHttpProxy(target *url.URL) http.Handler {
+
+	return &httputil.ReverseProxy{
+		Director: func(req *http.Request) {
+			req.URL.Scheme = target.Scheme
+			req.URL.Host = target.Host
+			req.URL.Path = target.Path
+			req.URL.RawQuery = target.RawQuery
+			// log the request body.
+			body_bytes, err := httputil.DumpRequestOut(req, true)
+			if err != nil {
+				fmt.Println("error when dump request")
+				fmt.Printf("%s\n", err.Error())
+				return
+			}
+			fmt.Printf("request body  %s\n", string(body_bytes))
+		},
+		ModifyResponse: func(response *http.Response) error {
+			body_bytes, err := httputil.DumpResponse(response, true)
+			if err != nil {
+				fmt.Println("error when dump response")
+				fmt.Printf("%s\n", err.Error())
+				return err
+			}
+			fmt.Printf("response body %s\n", string(body_bytes))
+			return nil
+		},
+	}
+
 }

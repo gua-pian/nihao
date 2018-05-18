@@ -1,10 +1,9 @@
 package helper
 
 import (
-	"bytes"
 	"fmt"
-	"io/ioutil"
 	"net/http"
+	"net/url"
 	"time"
 )
 
@@ -21,19 +20,19 @@ var AddApi = func(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	method := values.Get("method")
-	handler := values.Get("handler")
+	apiName := values.Get("apiName")
+	apiUpstream := values.Get("apiUpstream")
 
-	if _, ok := am.routers[method]; ok {
+	if _, ok := am.routers[apiName]; ok {
 		SetResponse(w, H{"Status": -1, "message": "Method added already"})
 		return
 	}
 
-	if method == "" || handler == "" {
+	if apiName == "" || apiUpstream == "" {
 		SetResponse(w, H{"Status": -1, "Info": "paramater error"})
 		return
 	}
-	am.routers[method] = handler
+	am.routers[apiName] = apiUpstream
 	SetResponse(w, H{"Status": 0, "Info": "method added ok!"})
 }
 
@@ -43,10 +42,12 @@ func ShowHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 var HomeHandler = func(w http.ResponseWriter, r *http.Request) {
+	fmt.Printf("url: %s\n", r.URL.Path)
 	path := r.URL.Path
 	router, ok := am.routers[path]
 	if !ok {
 		if path != "/" {
+			fmt.Printf("path: %s\n", path)
 			SetResponse(w, H{"Status": -1, "Info": "You are calling the wrong api."})
 			return
 		}
@@ -54,6 +55,7 @@ var HomeHandler = func(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	/*
 	// Log all the request parameters.
 	// Handler content-type.
 	values, err := ContentTypeHandler(r)
@@ -61,63 +63,16 @@ var HomeHandler = func(w http.ResponseWriter, r *http.Request) {
 		SetResponse(w, H{"Status": -1, "Info": err})
 		return
 	}
-	fmt.Printf("%+v\n", values)
+	fmt.Printf("parameters: %v\n", values)
+	*/
 
-	// Forward the request to backend server.
-	newRequest := ConstructHttpRequest(r, router+path)
-	fmt.Println(r.URL)
-	fmt.Println(r.Host)
-
-	client := http.Client{}
-	// begin time.
+	u, err := url.Parse(router + path)
+	if err != nil {
+		fmt.Printf("err:%s\n", err.Error())
+	}
+	h := newHttpProxy(u)
 	begin := time.Now()
-
-	// set timeout for the request.
-	done := make(chan bool)
-	var res *http.Response
-	go func() {
-		res, _ = client.Do(newRequest)
-		done <- true
-	}()
-
-	var tick int64 = am.timeout[path]
-	if tick == 0 {
-		// set a default timeout.
-		tick = 20
-	}
-	select {
-	case <-time.After(time.Duration(tick) * time.Second):
-		SetResponse(w, H{"Status": -1, "Info": "Timeout,byebye."})
-		return
-	case <-done:
-		duration := time.Since(begin).String()
-		fmt.Println("time elapsed:" + duration)
-		fmt.Println("response status:" + res.Status)
-	}
-
-	if err != nil {
-		SetResponse(w, H{"Status": -1, "Info": err})
-		return
-	}
-	defer res.Body.Close()
-
-	resBytes, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		SetResponse(w, H{"Status": -1, "Info": err})
-		return
-	}
-
-	resReader4Log := bytes.NewReader(resBytes)
-	resReader4Return := bytes.NewReader(resBytes)
-
-	// Log the response.
-	res4Log := ioutil.NopCloser(resReader4Log)
-	loginfo, _ := ioutil.ReadAll(res4Log)
-	fmt.Printf("%v\n", len(loginfo))
-
-	// Send the response to downstream.
-	res4Return := ioutil.NopCloser(resReader4Return)
-	s, _ := ioutil.ReadAll(res4Return)
-	w.Header().Set("Content-Type", "application/json")
-	w.Write([]byte(s))
+	h.ServeHTTP(w, r)
+	duration := time.Since(begin).String()
+	fmt.Println("time elapsed:" + duration)
 }
