@@ -42,7 +42,6 @@ func ShowHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 var HomeHandler = func(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("url: %s\n", r.URL.Path)
 	path := r.URL.Path
 	router, ok := am.routers[path]
 	if !ok {
@@ -57,18 +56,16 @@ var HomeHandler = func(w http.ResponseWriter, r *http.Request) {
 
 	// Init the request with uuid.
 
-	// Log all the request parameters.
-	err := dumpRequest(r)
-	if err != nil {
-		SetResponse(w, H{"Status": -1, "Info": err})
-		return
-	}
-
 	u, err := url.Parse(router + path)
 	if err != nil {
 		fmt.Printf("err:%s\n", err.Error())
 	}
 	h := newHttpProxy(u)
+	// Log all the request parameters.
+	err = dumpRequest(r, router)
+	if err != nil {
+		SetResponse(w, H{"Status": -1, "Info": "Error when dump request body." + err.Error()})
+	}
 	begin := time.Now()
 	h.ServeHTTP(w, r)
 	duration := time.Since(begin).String()

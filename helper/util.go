@@ -2,15 +2,16 @@ package helper
 
 import (
 	"encoding/json"
-	"fmt"
+	"log"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 )
 
 type (
-	H           map[string]interface{}
-	middlefunc  func(handler http.Handler) http.Handler
+	H          map[string]interface{}
+	middlefunc func(handler http.Handler) http.Handler
 )
 
 /* ApiManager consists of following fields.
@@ -25,7 +26,12 @@ type ApiManager struct {
 	timeout map[string]int64
 }
 
-var am *ApiManager
+var (
+	am          *ApiManager
+	dumpLogFile *os.File
+	err         error
+	timeFormat  = "2006-01-02 15:04:05.000000"
+)
 
 func init() {
 	am = &ApiManager{
@@ -37,6 +43,12 @@ func init() {
 	am.routers["/user/list_material"] = "http://10.2.1.107:8085"
 	am.middle["/api_add/list"] = []middlefunc{Log, Lol}
 	am.final["/api_add/list"] = ShowHandler
+
+	dumpLogFile, err = os.OpenFile("./dump.log", os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
+	if err != nil {
+		log.Fatal("Open file error", err.Error())
+	}
+
 }
 
 func SetResponse(w http.ResponseWriter, h H) {
@@ -55,13 +67,12 @@ func newHttpProxy(target *url.URL) http.Handler {
 			req.URL.RawQuery = target.RawQuery
 		},
 		ModifyResponse: func(response *http.Response) error {
-			body_bytes, err := httputil.DumpResponse(response, true)
+			// Copy response.Body to bytes and output to the log.
+			err := dumpReponse(response)
 			if err != nil {
-				fmt.Println("error when dump response")
-				fmt.Printf("%s\n", err.Error())
+				dumpLogFile.WriteString("error when dump response:" + err.Error())
 				return err
 			}
-			fmt.Printf("response body %s\n", string(body_bytes))
 			return nil
 		},
 	}
