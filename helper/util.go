@@ -7,6 +7,7 @@ import (
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"fmt"
 )
 
 type (
@@ -71,6 +72,7 @@ func newHttpProxy(target *url.URL) http.Handler {
 			err := dumpReponse(response)
 			if err != nil {
 				dumpLogFile.WriteString("error when dump response:" + err.Error())
+				fmt.Fprintln(dumpLogFile)
 				return err
 			}
 			return nil

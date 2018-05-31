@@ -3,13 +3,13 @@ package helper
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
 	"net/url"
 	"time"
+	"fmt"
 )
 
 type (
@@ -100,7 +100,7 @@ func RemoteIp(r *http.Request) string {
 func dumpRequest(r *http.Request, router string) error {
 	// Log the parameters in body.
 	values, err := ContentTypeHandler(r)
-	fmt.Println(values)
+	// fmt.Println(values)
 	if err != nil {
 		return err
 	}
@@ -110,11 +110,13 @@ func dumpRequest(r *http.Request, router string) error {
 	bytesRequestBody, err := json.Marshal(requestBody)
 	if err != nil {
 		dumpLogFile.WriteString("Error When Marshal Resquest Body: " + err.Error())
+		fmt.Fprintln(dumpLogFile)
 		return err
 	}
 	dumpLogFile.WriteString("request_body:")
 	dumpLogFile.Write(bytesRequestBody)
 	fmt.Fprintln(dumpLogFile)
+	// fmt.Fprintln(dumpLogFile)
 	return nil
 }
 
@@ -131,17 +133,21 @@ func dumpReponse(res *http.Response) error {
 	defer res.Body.Close()
 	if err != nil {
 		dumpLogFile.WriteString("Error When Read Response Body:" + err.Error())
+		fmt.Fprintln(dumpLogFile)
 		return err
 	}
 	responseBody.ResponseBody = json.RawMessage(bytesBody)
+	// fmt.Printf("%+v\n",responseBody)
 	bytesResponseBody, err := json.Marshal(responseBody)
 	if err != nil {
 		dumpLogFile.WriteString("Error When Marshal Response Body:" + err.Error())
+		fmt.Fprintln(dumpLogFile)
 		return err
 	}
 	dumpLogFile.WriteString("response_body:")
 	dumpLogFile.Write(bytesResponseBody)
 	fmt.Fprintln(dumpLogFile)
+	// fmt.Fprintln(dumpLogFile)
 	// Restore res.Body.
 	res.Body = save
 	return nil
