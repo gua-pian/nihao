@@ -1,7 +1,7 @@
 package main
 
 import (
-	"awesomeProject/helper"
+	"github.com/gua-pian/nihao/helper"
 	"log"
 	"net/http"
 )
